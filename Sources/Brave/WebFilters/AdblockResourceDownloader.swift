@@ -136,8 +136,6 @@ public actor AdblockResourceDownloader: Sendable {
   
   /// Handle the downloaded file url for the given resource
   private func handle(downloadResult: ResourceDownloader<BraveS3Resource>.DownloadResult, for resource: BraveS3Resource) async {
-    let version = fileVersionDateFormatter.string(from: downloadResult.date)
-    
     switch resource {
     case .genericContentBlockingBehaviors:
       let blocklistType = ContentBlockerManager.BlocklistType.generic(.blockAds)
@@ -186,7 +184,7 @@ public actor AdblockResourceDownloader: Sendable {
         ContentBlockerManager.log.error("Failed to setup debounce rules: \(error.localizedDescription)")
       }
       
-    default:
+    case .deprecatedGeneralCosmeticFilters:
       assertionFailure("Should not be handling this resource type")
     }
   }
