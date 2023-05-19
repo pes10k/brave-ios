@@ -614,6 +614,6 @@ extension Tab: BraveWalletKeyringServiceObserver {
   func selectedAccountChanged(_ coin: BraveWallet.CoinType) {
   }
   
-  func accountsAdded(_ coin: BraveWallet.CoinType, addresses: [String]) {
+  func accountsAdded(_ addedAccounts: [BraveWallet.AccountInfo]) {
   }
 }
