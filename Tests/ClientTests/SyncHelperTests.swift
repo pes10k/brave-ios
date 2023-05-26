@@ -3,7 +3,7 @@ import XCTest
 
 @testable import Brave
 
-@MainActor class SyncHelperTests: XCTestCase {
+class SyncHelperTests: XCTestCase {
   
   func testSyncedSessionPeriodDate() {
     var dateComponents = DateComponents()

@@ -99,7 +99,7 @@ open class MockTabManagerDelegate: TabManagerDelegate {
   }
 }
 
-@MainActor class TabManagerTests: XCTestCase {
+class TabManagerTests: XCTestCase {
 
   let willRemove = MethodSpy(functionName: "tabManager(_:willRemoveTab:)")
   let didRemove = MethodSpy(functionName: "tabManager(_:didRemoveTab:)")

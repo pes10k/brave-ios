@@ -7,7 +7,7 @@ import XCTest
 import CryptoKit
 @testable import Brave
 
-@MainActor class FarblingProtectionHelperTests: XCTestCase {
+class FarblingProtectionHelperTests: XCTestCase {
   func testGivenTheSameRandomManagerThenSameFakePluginData() throws {
     // Given
     // Same random manager

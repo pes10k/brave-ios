@@ -6,7 +6,7 @@
 import XCTest
 @testable import Brave
 
-@MainActor class UniversalLinkManagerTests: XCTestCase {
+class UniversalLinkManagerTests: XCTestCase {
   private typealias ULM = UniversalLinkManager
 
   func testVpnUniversalLink() throws {

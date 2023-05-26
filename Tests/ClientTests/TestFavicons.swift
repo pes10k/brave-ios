@@ -10,7 +10,7 @@ import Shared
 import Data
 import Favicon
 
-@MainActor class TestFavicons: ProfileTest {
+class TestFavicons: ProfileTest {
   
   override func setUp() {
     super.setUp()

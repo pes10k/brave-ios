@@ -60,7 +60,7 @@ class EthereumProviderScriptHandler: TabContentScript {
     }
   }
   
-  @MainActor func userContentController(
+  func userContentController(
     _ userContentController: WKUserContentController,
     didReceiveScriptMessage message: WKScriptMessage,
     replyHandler: @escaping (Any?, String?) -> Void
