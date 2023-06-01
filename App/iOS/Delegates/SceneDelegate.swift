@@ -32,43 +32,49 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
   func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
     guard let windowScene = (scene as? UIWindowScene) else { return }
-    
+
     let browserViewController = createBrowserWindow(
       scene: windowScene,
       braveCore: AppState.shared.braveCore,
       profile: AppState.shared.profile,
       diskImageStore: AppState.shared.diskImageStore,
       migration: AppState.shared.migration,
+      rewards: AppState.shared.rewards,
       userActivity: connectionOptions.userActivities.first ?? session.stateRestorationActivity
     )
     
     let conditions = scene.activationConditions
-    conditions.canActivateForTargetContentIdentifierPredicate = NSPredicate(value: false)
+    conditions.canActivateForTargetContentIdentifierPredicate = NSPredicate(value: true)
     if let windowId = session.userInfo?["WindowID"] as? UUID {
       let preferPredicate = NSPredicate(format: "self == %@", windowId.uuidString)
-        conditions.prefersToActivateForTargetContentIdentifierPredicate =
-            NSCompoundPredicate(orPredicateWithSubpredicates: [preferPredicate])
+        conditions.prefersToActivateForTargetContentIdentifierPredicate = preferPredicate
     }
     
     Preferences.General.themeNormalMode.objectWillChange
       .receive(on: RunLoop.main)
       .sink { [weak self, weak scene] _ in
-        self?.updateTheme(for: scene)
+        guard let self = self,
+              let scene = scene as? UIWindowScene else { return }
+        self.updateTheme(for: scene)
       }
       .store(in: &cancellables)
 
     Preferences.General.nightModeEnabled.objectWillChange
       .receive(on: RunLoop.main)
       .sink { [weak self, weak scene] _ in
-        self?.updateTheme(for: scene)
+        guard let self = self,
+              let scene = scene as? UIWindowScene else { return }
+        self.updateTheme(for: scene)
       }
       .store(in: &cancellables)
 
-    PrivateBrowsingManager.shared.$isPrivateBrowsing
+    browserViewController.privateBrowsingManager.$isPrivateBrowsing
       .removeDuplicates()
       .receive(on: RunLoop.main)
       .sink { [weak self, weak scene] _ in
-        self?.updateTheme(for: scene)
+        guard let self = self,
+              let scene = scene as? UIWindowScene else { return }
+        self.updateTheme(for: scene)
       }
       .store(in: &cancellables)
 
@@ -98,7 +104,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
     PrivacyReportsManager.scheduleNotification(debugMode: !AppConstants.buildChannel.isPublic)
     PrivacyReportsManager.consolidateData()
-    PrivacyReportsManager.scheduleProcessingBlockedRequests()
+    PrivacyReportsManager.scheduleProcessingBlockedRequests(isPrivateBrowsing: browserViewController.privateBrowsingManager.isPrivateBrowsing)
     PrivacyReportsManager.scheduleVPNAlertsTask()
   }
   
@@ -161,6 +167,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
       return
     }
     
+    if let windowId = (scene.userActivity?.userInfo?["WindowID"] ??
+                       scene.session.userInfo?["WindowID"]) as? String,
+       let windowUUID = UUID(uuidString: windowId) {
+      SessionWindow.setSelected(windowId: windowUUID)
+    }
+    
     Preferences.AppState.backgroundedCleanly.value = false
     AppState.shared.profile.reopen()
 
@@ -187,7 +199,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
       AppState.shared.dau.sendPingToServer()
     }
     
-    BraveSkusManager.refreshSKUCredential(isPrivate: PrivateBrowsingManager.shared.isPrivateBrowsing)
+    BraveSkusManager.refreshSKUCredential(isPrivate: scene.browserViewController?.privateBrowsingManager.isPrivateBrowsing == true)
   }
 
   func sceneWillResignActive(_ scene: UIScene) {
@@ -213,7 +225,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     URLContexts.forEach({
-      guard let routerpath = NavigationPath(url: $0.url) else {
+      guard let routerpath = NavigationPath(url: $0.url, isPrivateBrowsing: scene.browserViewController?.privateBrowsingManager.isPrivateBrowsing == true) else {
         log.debug("Invalid Navigation Path: \($0.url)")
         return
       }
@@ -223,11 +235,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
   }
   
   func scene(_ scene: UIScene, didUpdate userActivity: NSUserActivity) {
-    print("HERE")
+    log.debug("Updated User Activity for Scene")
   }
 
   func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
-
     guard let scene = scene as? UIWindowScene else {
       return
     }
@@ -335,7 +346,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
   }
 
   func windowScene(_ windowScene: UIWindowScene, performActionFor shortcutItem: UIApplicationShortcutItem, completionHandler: @escaping (Bool) -> Void) {
-
     if let browserViewController = windowScene.browserViewController {
       QuickActions.sharedInstance.handleShortCutItem(shortcutItem, withBrowserViewController: browserViewController)
       completionHandler(true)
@@ -350,32 +360,31 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 }
 
 extension SceneDelegate {
-  private func expectedThemeOverride(for scene: UIScene?) -> UIUserInterfaceStyle {
+  private func expectedThemeOverride(for scene: UIWindowScene?) -> UIUserInterfaceStyle {
 
     // The expected appearance theme should be dark mode when night mode is enabled for websites
     let themeValue = Preferences.General.nightModeEnabled.value ? DefaultTheme.dark.rawValue : Preferences.General.themeNormalMode.value
 
     let themeOverride = DefaultTheme(rawValue: themeValue)?.userInterfaceStyleOverride ?? .unspecified
-    let isPrivateBrowsing = scene?.userActivity?.userInfo?["isPrivate"] as? Bool ??
-                            scene?.session.userInfo?["isPrivate"] as? Bool ??
-                            PrivateBrowsingManager.shared.isPrivateBrowsing
+    let isPrivateBrowsing = scene?.browserViewController?.privateBrowsingManager.isPrivateBrowsing == true
     return isPrivateBrowsing ? .dark : themeOverride
   }
 
-  private func updateTheme(for scene: UIScene?) {
-    guard let window = window else { return }
-    UIView.transition(
-      with: window, duration: 0.15, options: [.transitionCrossDissolve],
-      animations: {
-        window.overrideUserInterfaceStyle = self.expectedThemeOverride(for: scene)
-      }, completion: nil)
+  private func updateTheme(for scene: UIWindowScene) {
+    scene.windows.forEach { window in
+      UIView.transition(
+        with: window, duration: 0.15, options: [.transitionCrossDissolve],
+        animations: {
+          window.overrideUserInterfaceStyle = self.expectedThemeOverride(for: scene)
+        }, completion: nil)
+    }
   }
 }
 
 extension SceneDelegate {
-  private func createBrowserWindow(scene: UIWindowScene, braveCore: BraveCoreMain, profile: Profile, diskImageStore: DiskImageStore?, migration: Migration?, userActivity: NSUserActivity?) -> BrowserViewController {
-    // Make sure current private browsing flag respects the private browsing only user preference
-    PrivateBrowsingManager.shared.isPrivateBrowsing = Preferences.Privacy.privateBrowsingOnly.value
+  private func createBrowserWindow(scene: UIWindowScene, braveCore: BraveCoreMain, profile: Profile, diskImageStore: DiskImageStore?, migration: Migration?, rewards: Brave.BraveRewards, userActivity: NSUserActivity?) -> BrowserViewController {
+
+    let privateBrowsingManager = PrivateBrowsingManager()
 
     // Don't track crashes if we're building the development environment due to the fact that terminating/stopping
     // the simulator via Xcode will count as a "crash" and lead to restore popups in the subsequent launch
@@ -387,9 +396,12 @@ extension SceneDelegate {
     var userActivity = userActivity
     
     if let userActivity = userActivity {
+      // Restore the scene with the WindowID from the User-Activity
+      
       let windowIdString = userActivity.userInfo?["WindowID"] as? String ?? ""
       windowId = UUID(uuidString: windowIdString) ?? UUID()
-      isPrivate = userActivity.userInfo?["isPrivate"] as? Bool ?? Preferences.Privacy.privateBrowsingOnly.value
+      isPrivate = userActivity.userInfo?["isPrivate"] as? Bool == true
+      privateBrowsingManager.isPrivateBrowsing = isPrivate
       
       // Create a new session window
       SessionWindow.createWindow(isPrivate: isPrivate, isSelected: true, uuid: windowId)
@@ -397,9 +409,53 @@ extension SceneDelegate {
       scene.userActivity = userActivity
       scene.session.userInfo?["WindowID"] = windowId
       scene.session.userInfo?["isPrivate"] = isPrivate
+    } else if let sceneWindowId = scene.session.userInfo?["WindowID"] as? String,
+              let sceneIsPrivate = scene.session.userInfo?["isPrivate"] as? Bool,
+              let windowUUID = UUID(uuidString: sceneWindowId) {
+      
+      // Restore the scene from the Session's User-Info WindowID
+      
+      windowId = windowUUID
+      isPrivate = sceneIsPrivate
+      privateBrowsingManager.isPrivateBrowsing = sceneIsPrivate
+      
+      scene.userActivity = BrowserState.userActivity(for: windowId, isPrivate: isPrivate)
     } else {
-      windowId = SessionWindow.getActiveWindow(context: DataController.swiftUIContext)?.windowId ?? UUID()
-      isPrivate = Preferences.Privacy.privateBrowsingOnly.value
+      // Should NOT be possible to get here.
+      // However, if a controller is NOT active, and tapping the app-icon opens a New-Window
+      // Then we need to make sure not to restore that "New" Window
+      // So we iterate all the windows and if there is no active window, then we need to "Restore" one.
+      // If a window is already active, we need to create a new blank window.
+      
+      if let activeWindowId = SessionWindow.getActiveWindow(context: DataController.swiftUIContext)?.windowId {
+        let activeSession = UIApplication.shared.openSessions
+          .compactMap({ $0.userInfo?["WindowID"] as? String })
+          .first(where: { $0 == activeWindowId.uuidString })
+        
+        if activeSession != nil {
+          // An existing window is already active on screen
+          // So create a new window
+          let newWindowId = UUID()
+          SessionWindow.createWindow(isPrivate: false, isSelected: true, uuid: newWindowId)
+          windowId = newWindowId
+        } else {
+          // Restore the active window since none is active on screen
+          windowId = activeWindowId
+        }
+      } else {
+        // Should be impossible to get here. There must always be an active window.
+        // However, if for some reason there is none, then we should create one.
+        let newWindowId = UUID()
+        SessionWindow.createWindow(isPrivate: false, isSelected: true, uuid: newWindowId)
+        windowId = newWindowId
+      }
+      
+      isPrivate = false
+      privateBrowsingManager.isPrivateBrowsing = false
+      
+      scene.userActivity = BrowserState.userActivity(for: windowId, isPrivate: false)
+      scene.session.userInfo = ["WindowID": windowId.uuidString,
+                                "isPrivate": false]
     }
 
     // Create a browser instance
@@ -410,7 +466,10 @@ extension SceneDelegate {
       braveCore: braveCore,
       rewards: rewards,
       migration: migration,
-      crashedLastSession: crashedLastSession)
+      crashedLastSession: crashedLastSession,
+      rewards: rewards,
+      privateBrowsingManager: privateBrowsingManager
+    )
 
     browserViewController.do {
       $0.edgesForExtendedLayout = []

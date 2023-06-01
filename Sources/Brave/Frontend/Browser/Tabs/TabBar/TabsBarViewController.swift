@@ -101,8 +101,9 @@ class TabsBarViewController: UIViewController {
     }
 
     var newTabMenu: [UIAction] = []
+    let isPrivateBrowsing = tabManager?.privateBrowsingManager.isPrivateBrowsing == true
 
-    if !PrivateBrowsingManager.shared.isPrivateBrowsing {
+    if !isPrivateBrowsing {
       let openNewPrivateTab = UIAction(
         title: Strings.Hotkey.newPrivateTabTitle,
         image: UIImage(systemName: "plus.square.fill.on.square.fill"),
@@ -114,20 +115,20 @@ class TabsBarViewController: UIViewController {
     }
 
     let openNewTab = UIAction(
-      title: PrivateBrowsingManager.shared.isPrivateBrowsing ? Strings.Hotkey.newPrivateTabTitle : Strings.Hotkey.newTabTitle,
-      image: PrivateBrowsingManager.shared.isPrivateBrowsing ? UIImage(systemName: "plus.square.fill.on.square.fill") : UIImage(systemName: "plus.square.on.square"),
+      title: isPrivateBrowsing ? Strings.Hotkey.newPrivateTabTitle : Strings.Hotkey.newTabTitle,
+      image: isPrivateBrowsing ? UIImage(systemName: "plus.square.fill.on.square.fill") : UIImage(systemName: "plus.square.on.square"),
       handler: UIAction.deferredActionHandler { [unowned self] _ in
-        self.delegate?.tabsBarDidSelectAddNewTab(PrivateBrowsingManager.shared.isPrivateBrowsing)
+        self.delegate?.tabsBarDidSelectAddNewTab(isPrivateBrowsing)
       })
 
     newTabMenu.append(openNewTab)
     
     newTabMenu.append(UIAction(title: "New Window", image: UIImage(systemName: "window.horizontal.closed"), handler: UIAction.deferredActionHandler { [unowned self] _ in
-      self.delegate?.tabsBarDidSelectAddNewWindow(PrivateBrowsingManager.shared.isPrivateBrowsing)
+      self.delegate?.tabsBarDidSelectAddNewWindow(isPrivateBrowsing)
     }))
 
     plusButton.menu = UIMenu(title: "", identifier: nil, children: newTabMenu)
-    privateModeCancellable = PrivateBrowsingManager.shared
+    privateModeCancellable = tabManager?.privateBrowsingManager
       .$isPrivateBrowsing
       .removeDuplicates()
       .sink(receiveValue: { [weak self] isPrivateBrowsing in
@@ -137,7 +138,7 @@ class TabsBarViewController: UIViewController {
     Preferences.General.nightModeEnabled.objectWillChange
       .receive(on: RunLoop.main)
       .sink { [weak self] _ in
-        self?.updateColors(PrivateBrowsingManager.shared.isPrivateBrowsing)
+        self?.updateColors(self?.tabManager?.privateBrowsingManager.isPrivateBrowsing == true)
       }
       .store(in: &cancellables)
   }
@@ -204,7 +205,7 @@ class TabsBarViewController: UIViewController {
   }
 
   @objc func addTabPressed() {
-    tabManager?.addTabAndSelect(isPrivate: PrivateBrowsingManager.shared.isPrivateBrowsing)
+    tabManager?.addTabAndSelect(isPrivate: tabManager?.privateBrowsingManager.isPrivateBrowsing == true)
   }
 
   @objc private func didLongPressAddTab(_ longPress: UILongPressGestureRecognizer) {

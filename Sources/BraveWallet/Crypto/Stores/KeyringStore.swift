@@ -107,6 +107,13 @@ public class KeyringStore: ObservableObject {
   /// The origin of the active tab (if applicable). Used for fetching/selecting network for the DApp origin.
   public var origin: URLOrigin?
   
+  /// If this KeyringStore instance is creating a wallet.
+  /// This flag is used to know when to dismiss onboarding when multiple windows are visible.
+  private var isCreatingWallet = false
+  /// If this KeyringStore instance is restoring a wallet.
+  /// This flag is used to know when to dismiss onboarding when multiple windows are visible.
+  private var isRestoringWallet = false
+  
   /// Internal flag kept for when `setSelectedAccount` is executing so we can wait for
   /// completion before reacting to observed changes. Ex. chain changed event fires after
   /// `setSelectedAccount` changes network, but before it can set the new account.
@@ -223,6 +230,8 @@ public class KeyringStore: ObservableObject {
   }
 
   func markOnboardingCompleted() {
+    self.isCreatingWallet = false
+    self.isRestoringWallet = false
     self.isOnboardingVisible = false
   }
 
@@ -271,6 +280,7 @@ public class KeyringStore: ObservableObject {
   }
 
   func createWallet(password: String, completion: ((String) -> Void)? = nil) {
+    isCreatingWallet = true
     keyringService.createWallet(password) { [weak self] mnemonic in
       self?.updateKeyringInfo()
       completion?(mnemonic)
@@ -292,6 +302,7 @@ public class KeyringStore: ObservableObject {
   }
 
   func restoreWallet(phrase: String, password: String, isLegacyBraveWallet: Bool, completion: ((Bool) -> Void)? = nil) {
+    isRestoringWallet = true
     keyringService.restoreWallet(
       phrase,
       password: password,
@@ -430,6 +441,11 @@ extension KeyringStore: BraveWalletKeyringServiceObserver {
   }
 
   public func keyringCreated(_ keyringId: String) {
+    if isOnboardingVisible, !isCreatingWallet, keyringId == BraveWallet.DefaultKeyringId {
+      // Another window has created a wallet. We should dismiss onboarding on this
+      // window and allow the other window to continue with it's onboarding flow.
+      isOnboardingVisible = false
+    }
     Task { @MainActor in
       let newKeyring = await keyringService.keyringInfo(keyringId)
       if let newKeyringCoin = newKeyring.coin {
@@ -444,6 +460,11 @@ extension KeyringStore: BraveWalletKeyringServiceObserver {
   }
 
   public func keyringRestored(_ keyringId: String) {
+    if isOnboardingVisible && !isRestoringWallet, keyringId == BraveWallet.DefaultKeyringId {
+      // Another window has restored a wallet. We should dismiss onboarding on this
+      // window and allow the other window to continue with it's onboarding flow.
+      isOnboardingVisible = false
+    }
     updateKeyringInfo()
   }
 

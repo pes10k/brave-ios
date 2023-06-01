@@ -112,7 +112,7 @@ extension SessionWindow {
   /// Since only one window can be active at a time, all other windows are marked as deselected
   public static func setSelected(windowId: UUID) {
     DataController.perform { context in
-      guard let window = Self.from(windowId: windowId) else { return }
+      guard let window = Self.from(windowId: windowId, in: context) else { return }
 
       let predicate = NSPredicate(format: "isSelected == true")
       all(where: predicate, context: context)?.forEach {

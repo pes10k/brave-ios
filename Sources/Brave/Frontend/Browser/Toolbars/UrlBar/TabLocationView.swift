@@ -248,8 +248,8 @@ class TabLocationView: UIView {
     $0.insetsLayoutMarginsFromSafeArea = false
   }
 
-  override init(frame: CGRect) {
-    super.init(frame: frame)
+  init(privateBrowsingManager: PrivateBrowsingManager) {
+    super.init(frame: .zero)
 
     backgroundColor = .braveBackground
 
@@ -296,7 +296,7 @@ class TabLocationView: UIView {
     dragInteraction.allowsSimultaneousRecognitionDuringLift = true
     self.addInteraction(dragInteraction)
     
-    privateModeCancellable = PrivateBrowsingManager.shared.$isPrivateBrowsing
+    privateModeCancellable = privateBrowsingManager.$isPrivateBrowsing
       .removeDuplicates()
       .sink(receiveValue: { [weak self] isPrivateBrowsing in
         self?.updateColors(isPrivateBrowsing)
