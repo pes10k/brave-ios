@@ -30,15 +30,6 @@ public class FilterListResourceDownloader {
   /// A list of loaded versions for the filter lists with the componentId as the key and version as the value
   private var loadedRuleListVersions: [String: String]
   
-  /// A formatter that is used to format a version number
-  private lazy var fileVersionDateFormatter: DateFormatter = {
-    let dateFormatter = DateFormatter()
-    dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-    dateFormatter.dateFormat = "yyyy.MM.dd.HH.mm.ss"
-    dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
-    return dateFormatter
-  }()
-  
   init() {
     self.adBlockServiceTasks = [:]
     self.adBlockService = nil

@@ -153,7 +153,7 @@ actor ContentBlockerManager {
   
   /// Compiles the bundled file for the given generic type
   /// - Warning: This may replace any downloaded versions with the bundled ones in the rulestore
-  /// for example, the `adBlock` rule type may replace the `genericContentBlockingBehaviors` downloaded version.
+  /// for example, the `adBlock` rule type may replace the `adBlockRules` downloaded version.
   func compileBundledRuleList(for genericType: GenericBlocklistType) async throws {
     guard let fileURL = Bundle.module.url(forResource: genericType.bundledFileName, withExtension: "json") else {
       assertionFailure("A bundled file shouldn't fail to load")

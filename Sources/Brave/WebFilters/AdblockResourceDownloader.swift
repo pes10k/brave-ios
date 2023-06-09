@@ -14,20 +14,11 @@ public actor AdblockResourceDownloader: Sendable {
   
   /// All the different resources this downloader handles
   static let handledResources: [BraveS3Resource] = [
-    .genericContentBlockingBehaviors, .debounceRules
+    .adBlockRules, .debounceRules
   ]
   
   /// A list of old resources that need to be deleted so as not to take up the user's disk space
   private static let deprecatedResources: [BraveS3Resource] = [.deprecatedGeneralCosmeticFilters]
-  
-  /// A formatter that is used to format a version number
-  private let fileVersionDateFormatter: DateFormatter = {
-    let dateFormatter = DateFormatter()
-    dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-    dateFormatter.dateFormat = "yyyy.MM.dd.HH.mm.ss"
-    dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
-    return dateFormatter
-  }()
   
   /// The resource downloader that will be used to download all our resoruces
   private let resourceDownloader: ResourceDownloader<BraveS3Resource>
@@ -137,7 +128,7 @@ public actor AdblockResourceDownloader: Sendable {
   /// Handle the downloaded file url for the given resource
   private func handle(downloadResult: ResourceDownloader<BraveS3Resource>.DownloadResult, for resource: BraveS3Resource) async {
     switch resource {
-    case .genericContentBlockingBehaviors:
+    case .adBlockRules:
       let blocklistType = ContentBlockerManager.BlocklistType.generic(.blockAds)
       
       if !downloadResult.isModified {
@@ -151,15 +142,17 @@ public actor AdblockResourceDownloader: Sendable {
       }
       
       do {
-        guard let encodedContentRuleList = try resource.downloadedString() else {
+        guard let filterSet = try resource.downloadedString() else {
           assertionFailure("This file was downloaded successfully so it should not be nil")
           return
         }
         
+        var wasTruncated: Bool = false
+        let encodedContentRuleList = AdblockEngine.contentBlockerRules(fromFilterSet: filterSet, truncated: &wasTruncated)
+        
         // try to compile
         try await ContentBlockerManager.shared.compile(
-          encodedContentRuleList: encodedContentRuleList,
-          for: .generic(.blockAds)
+          encodedContentRuleList: encodedContentRuleList, for: blocklistType
         )
       } catch {
         ContentBlockerManager.log.error(
