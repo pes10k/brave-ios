@@ -938,7 +938,7 @@ class TabManager: NSObject {
       tab.setScreenshot(savedTab.screenshot)
       
       Task { @MainActor in
-        tab.favicon = try await FaviconFetcher.loadIcon(url: tabURL, kind: .smallIcon, persistent: tab.isPrivate)
+        tab.favicon = try await FaviconFetcher.loadIcon(url: tabURL, kind: .smallIcon, persistent: !tab.isPrivate)
         tab.setScreenshot(savedTab.screenshot)
       }
 
