@@ -608,6 +608,7 @@ class TabTrayController: LoadingViewController {
         // New private tab is created immediately to reflect changes on NTP.
         // If user drags the modal down or dismisses it, a new private tab will be ready.
         tabManager.addTabAndSelect(isPrivate: true)
+        navigationController?.setNavigationBarHidden(true, animated: false)
       } else {
         if tabManager.tabsForCurrentMode.isEmpty {
           tabManager.addTabAndSelect(isPrivate: true)
@@ -615,6 +616,7 @@ class TabTrayController: LoadingViewController {
         
         tabTrayView.hidePrivateModeInfo()
         tabTrayView.collectionView.reloadData()
+        navigationController?.setNavigationBarHidden(false, animated: false)
       }
     } else {
       tabTrayView.hidePrivateModeInfo()
@@ -623,11 +625,10 @@ class TabTrayController: LoadingViewController {
       // Reloding the collection view in order to mark the selecte the tab
       tabManager.selectTab(tabManager.tabsForCurrentMode[safe: tabManager.normalTabSelectedIndex])
       tabTrayView.collectionView.reloadData()
+      navigationController?.setNavigationBarHidden(false, animated: false)
     }
     
-    navigationController?.setNavigationBarHidden(privateMode, animated: false)
     tabTypeSelector.isHidden = privateMode
-
   }
 
   func remove(tab: Tab) {
