@@ -338,7 +338,7 @@ class MockKeyringService: BraveWalletKeyringService {
 extension BraveWallet.AccountInfo {
   static let mockEthAccount: BraveWallet.AccountInfo = .init(
     address: "mock_eth_id",
-    name: "mock_eth_name",
+    name: "Ethereum Account 1",
     isImported: false,
     hardware: nil,
     coin: .eth,
@@ -347,7 +347,7 @@ extension BraveWallet.AccountInfo {
   
   static let mockSolAccount: BraveWallet.AccountInfo = .init(
     address: "mock_sol_id",
-    name: "mock_sol_name",
+    name: "Solana Account 1",
     isImported: false,
     hardware: nil,
     coin: .sol,
@@ -356,7 +356,7 @@ extension BraveWallet.AccountInfo {
   
   static let mockFilAccount: BraveWallet.AccountInfo = .init(
     address: "mock_fil_id",
-    name: "mock_fil_name",
+    name: "Filecoin Account 1",
     isImported: false,
     hardware: nil,
     coin: .fil,
