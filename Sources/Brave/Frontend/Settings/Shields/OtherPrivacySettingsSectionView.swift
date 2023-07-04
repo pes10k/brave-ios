@@ -11,6 +11,7 @@ import Data
 
 struct OtherPrivacySettingsSectionView: View {
   @State private var showPrivateBrowsingConfirmation = false
+  @State private var showPersistentPrivateBrowsingAlert = false
   @ObservedObject var settings: AdvancedShieldsSettings
   
   @Environment(\.openURL) private var openSettingsURL
@@ -58,19 +59,40 @@ struct OtherPrivacySettingsSectionView: View {
         OptionToggleView(title: Strings.persistentPrivateBrowsing,
                          subtitle: nil,
                          option: Preferences.Privacy.persistentPrivateBrowsing) { newValue in
-          Task { @MainActor in
-            if newValue {
-              settings.tabManager.saveAllTabs()
-            } else {
-              let tabs = settings.tabManager.allTabs.filter({ $0.isPrivate })
-              SessionTab.deleteAll(tabIds: tabs.map({ $0.id }))
-              
-              if !settings.tabManager.privateBrowsingManager.isPrivateBrowsing {
-                settings.tabManager.willSwitchTabMode(leavingPBM: true)
+          if newValue {
+            showPersistentPrivateBrowsingAlert = Preferences.Privacy.shouldShowPersistentPrivateBrowsingAlert.value
+            Preferences.Privacy.shouldShowPersistentPrivateBrowsingAlert.value = false
+          }
+          
+          if !showPersistentPrivateBrowsingAlert {
+            Task { @MainActor in
+              if newValue {
+                settings.tabManager.saveAllTabs()
+              } else {
+                let tabs = settings.tabManager.allTabs.filter({ $0.isPrivate })
+                SessionTab.deleteAll(tabIds: tabs.map({ $0.id }))
+                
+                if !settings.tabManager.privateBrowsingManager.isPrivateBrowsing {
+                  settings.tabManager.willSwitchTabMode(leavingPBM: true)
+                }
               }
             }
           }
         }
+         .alert(isPresented: $showPersistentPrivateBrowsingAlert, content: {
+           Alert(
+            title: Text(Strings.persistentPrivateBrowsingAlertTitle),
+            message: Text(Strings.persistentPrivateBrowsingAlertMessage),
+            primaryButton: .default(Text(Strings.OKString), action: {
+              Task { @MainActor in
+                settings.tabManager.saveAllTabs()
+              }
+            }),
+            secondaryButton: .cancel(Text(Strings.cancelButtonTitle), action: {
+              
+            })
+           )
+         })
       }
       
       ShieldToggleView(
