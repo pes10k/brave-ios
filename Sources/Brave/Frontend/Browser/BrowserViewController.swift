@@ -280,7 +280,6 @@ public class BrowserViewController: UIViewController {
     rewards: BraveRewards,
     migration: Migration?,
     crashedLastSession: Bool,
-    rewards: BraveRewards,
     newsFeedDataSource: FeedDataSource,
     privateBrowsingManager: PrivateBrowsingManager
   ) {
@@ -291,7 +290,6 @@ public class BrowserViewController: UIViewController {
     self.rewards = rewards
     self.migration = migration
     self.crashedLastSession = crashedLastSession
-    self.rewards = rewards
     self.privateBrowsingManager = privateBrowsingManager
     self.feedDataSource = newsFeedDataSource
     feedDataSource.historyAPI = braveCore.historyAPI

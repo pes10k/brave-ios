@@ -402,7 +402,6 @@ extension SceneDelegate {
     // Store the scene's activities
     let windowId: UUID
     let isPrivate: Bool
-    var userActivity = userActivity
     
     if let userActivity = userActivity {
       // Restore the scene with the WindowID from the User-Activity
@@ -476,7 +475,6 @@ extension SceneDelegate {
       rewards: rewards,
       migration: migration,
       crashedLastSession: crashedLastSession,
-      rewards: rewards,
       newsFeedDataSource: newsFeedDataSource,
       privateBrowsingManager: privateBrowsingManager
     )
