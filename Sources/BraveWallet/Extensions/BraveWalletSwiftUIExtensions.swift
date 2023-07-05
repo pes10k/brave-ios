@@ -9,7 +9,7 @@ import BraveCore
 
 extension BraveWallet.AccountInfo: Identifiable {
   public var id: String {
-    address
+    "\(address)\(coin.rawValue)"
   }
   public var isPrimary: Bool {
     !isImported
@@ -35,7 +35,7 @@ public enum AssetImageName: String {
 
 extension BraveWallet.NetworkInfo: Identifiable {
   public var id: String {
-    chainId
+    "\(chainId)\(coin.rawValue)"
   }
   
   var shortChainName: String {
