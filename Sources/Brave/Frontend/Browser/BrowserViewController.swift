@@ -1949,6 +1949,25 @@ public class BrowserViewController: UIViewController {
       }
     }
   }
+  
+  func openInNewWindow(url: URL?, isPrivate: Bool) {
+    let activity = BrowserState.userActivity(for: UUID(), isPrivate: isPrivate)
+    
+    if let url = url {
+      activity.addUserInfoEntries(from: ["OpenURL": url])
+    }
+    
+    let options = UIScene.ActivationRequestOptions().then {
+      $0.requestingScene = view.window?.windowScene
+    }
+    
+    UIApplication.shared.requestSceneSessionActivation(nil,
+                                                       userActivity: activity,
+                                                       options: options,
+                                                       errorHandler: { error in
+      Logger.module.error("Error creating new window: \(error)")
+    })
+  }
 
   func clearHistoryAndOpenNewTab() {
     // When PB Only mode is enabled
@@ -2490,21 +2509,6 @@ extension BrowserViewController: PresentingModalViewControllerDelegate {
 extension BrowserViewController: TabsBarViewControllerDelegate {
   func tabsBarDidSelectAddNewTab(_ isPrivate: Bool) {
     openBlankNewTab(attemptLocationFieldFocus: false, isPrivate: isPrivate)
-  }
-  
-  func tabsBarDidSelectAddNewWindow(_ isPrivate: Bool) {
-    let activity = BrowserState.userActivity(for: UUID(), isPrivate: false)
-    
-    let options = UIScene.ActivationRequestOptions().then {
-      $0.requestingScene = view.window?.windowScene
-    }
-    
-    UIApplication.shared.requestSceneSessionActivation(nil,
-                                                       userActivity: activity,
-                                                       options: options,
-                                                       errorHandler: { error in
-      Logger.module.error("Error creating new window: \(error)")
-    })
   }
 
   func tabsBarDidSelectTab(_ tabsBarController: TabsBarViewController, _ tab: Tab) {
