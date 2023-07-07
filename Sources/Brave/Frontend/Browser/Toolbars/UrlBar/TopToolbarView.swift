@@ -803,6 +803,32 @@ extension TopToolbarView: AutocompleteTextFieldDelegate {
     leaveOverlayMode(didCancel: true)
     updateLocationBarRightView(showQrCodeButton: false)
   }
+  
+  func autocompleteTextField(_ autocompleteTextField: AutocompleteTextField, editMenuForCharactersIn range: NSRange, suggestedActions: [UIMenuElement]) -> UIMenu? {
+    guard let text = autocompleteTextField.text, range.length == text.count else {
+      return UIMenu(children: suggestedActions)
+    }
+    
+    guard let url = NSURL(idnString: text) else {
+      return UIMenu(children: suggestedActions)
+    }
+    
+    var actions: [UIMenuElement] = []
+    
+    if UIPasteboard.general.hasStrings || UIPasteboard.general.hasURLs {
+      actions.append(
+        UIAction.makePasteAction(pasteCallback: { pasteboardContents in
+          autocompleteTextField.text = pasteboardContents
+          self.delegate?.topToolbar(self, didEnterText: pasteboardContents)
+        })
+      )
+    }
+    
+    actions.append(UIAction.makeCopyAction(for: url as URL))
+    actions.append(UIAction.makeCleanCopyAction(for: url as URL))
+    
+    return UIMenu(options: .displayInline, children: actions)
+  }
 }
 
 extension TopToolbarView: UIDragInteractionDelegate {

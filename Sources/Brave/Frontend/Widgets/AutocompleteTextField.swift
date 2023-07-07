@@ -17,6 +17,7 @@ protocol AutocompleteTextFieldDelegate: AnyObject {
   func autocompleteTextFieldShouldClear(_ autocompleteTextField: AutocompleteTextField) -> Bool
   func autocompleteTextFieldDidBeginEditing(_ autocompleteTextField: AutocompleteTextField)
   func autocompleteTextFieldDidCancel(_ autocompleteTextField: AutocompleteTextField)
+  func autocompleteTextField(_ autocompleteTextField: AutocompleteTextField, editMenuForCharactersIn range: NSRange, suggestedActions: [UIMenuElement]) -> UIMenu?
 }
 
 private struct AutocompleteTextFieldUX {
@@ -261,6 +262,10 @@ public class AutocompleteTextField: UITextField, UITextFieldDelegate {
   public func textFieldShouldClear(_ textField: UITextField) -> Bool {
     removeCompletion()
     return autocompleteDelegate?.autocompleteTextFieldShouldClear(self) ?? true
+  }
+  
+  public func textField(_ textField: UITextField, editMenuForCharactersIn range: NSRange, suggestedActions: [UIMenuElement]) -> UIMenu? {
+    autocompleteDelegate?.autocompleteTextField(self, editMenuForCharactersIn: range, suggestedActions: suggestedActions)
   }
 
   override public func setMarkedText(_ markedText: String?, selectedRange: NSRange) {

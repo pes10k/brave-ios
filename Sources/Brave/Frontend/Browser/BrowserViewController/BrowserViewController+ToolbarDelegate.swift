@@ -914,54 +914,15 @@ extension BrowserViewController: UIContextMenuInteractionDelegate {
   public func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
     let configuration =  UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [unowned self] _ in
       var actionMenu: [UIMenu] = []
-      var pasteMenuChildren: [UIAction] = []
       
-      let pasteGoAction = UIAction(
-        identifier: .pasteAndGo,
-        handler: UIAction.deferredActionHandler { _ in
-          if let pasteboardContents = UIPasteboard.general.string {
-            self.topToolbar(self.topToolbar, didSubmitText: pasteboardContents)
-          }
-        })
-
-      let pasteAction = UIAction(
-        identifier: .paste,
-        handler: UIAction.deferredActionHandler { _ in
-          if let pasteboardContents = UIPasteboard.general.string {
-            // Enter overlay mode and make the search controller appear.
-            self.topToolbar.enterOverlayMode(pasteboardContents, pasted: true, search: true)
-          }
-        })
-
-      pasteMenuChildren = [pasteGoAction, pasteAction]
-      
-      if #unavailable(iOS 16.0), isUsingBottomBar {
-        pasteMenuChildren.reverse()
+      if let pasteMenu = makePasteMenu() {
+        actionMenu.append(pasteMenu)
       }
       
-      let copyAction = UIAction(
-        title: Strings.copyAddressTitle,
-        image: UIImage(systemName: "doc.on.doc"),
-        handler: UIAction.deferredActionHandler { _ in
-          if let url = self.topToolbar.currentURL {
-            UIPasteboard.general.url = url as URL
-          }
-        })
-
-      let copyMenu = UIMenu(title: "", options: .displayInline, children: [copyAction])
-      
-      if UIPasteboard.general.hasStrings || UIPasteboard.general.hasURLs {
-        let pasteMenu = UIMenu(title: "", options: .displayInline, children: pasteMenuChildren)
-        
-        actionMenu = [pasteMenu, copyMenu]
-        
-        if #unavailable(iOS 16.0), isUsingBottomBar {
-          actionMenu.reverse()
-        }
-      } else {
+      if let copyMenu = makeCopyMenu() {
         actionMenu = [copyMenu]
       }
-
+      
       return UIMenu(title: "", identifier: nil, children: actionMenu)
     }
       
@@ -970,5 +931,33 @@ extension BrowserViewController: UIContextMenuInteractionDelegate {
     }
     
     return configuration
+  }
+  
+  private func makePasteMenu() -> UIMenu? {
+    guard UIPasteboard.general.hasStrings || UIPasteboard.general.hasURLs else { return nil }
+    
+    var pasteMenuChildren: [UIAction] = [
+      UIAction.makePasteAndGoAction(pasteCallback: { pasteboardContents in
+        self.topToolbar(self.topToolbar, didSubmitText: pasteboardContents)
+      }),
+      UIAction.makePasteAction(pasteCallback: { pasteboardContents in
+        self.topToolbar.enterOverlayMode(pasteboardContents, pasted: true, search: true)
+      })
+    ]
+    
+    if #unavailable(iOS 16.0), isUsingBottomBar {
+      pasteMenuChildren.reverse()
+    }
+    
+    return UIMenu(title: "", options: .displayInline, children: pasteMenuChildren)
+  }
+  
+  private func makeCopyMenu() -> UIMenu? {
+    guard let url = self.topToolbar.currentURL else { return nil }
+    
+    return UIMenu(title: "", options: .displayInline, children: [
+      UIAction.makeCopyAction(for: url),
+      UIAction.makeCleanCopyAction(for: url)
+    ])
   }
 }
