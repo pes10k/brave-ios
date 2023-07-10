@@ -60,6 +60,12 @@ window.__firefox__.execute(function($) {
   // The begin of the time frame to calc |currentMutationScore|.
   let currentMutationStartTime = performance.now()
 
+  const maxMSKillSwitch = 10000
+  let shouldBeKilled = false
+  setTimeout(_ => {
+    shouldBeKilled = true
+  }, maxMSKillSwitch)
+
   const CC = {
     allSelectors: new Set(),
     pendingSelectors: { ids: new Set(), classes: new Set() },
@@ -253,6 +259,12 @@ window.__firefox__.execute(function($) {
   }
 
   const onMutations = async (mutations, observer) => {
+    if (shouldBeKilled === true) {
+      try {
+        observer.disconnect()
+      } catch (_) {}
+      return
+    }
     const mutationScore = queueSelectorsFromMutations(mutations)
 
     if (mutationScore > 0) {
@@ -686,6 +698,10 @@ window.__firefox__.execute(function($) {
    * @param {*} switchToMutationObserverAtTime A timestamp that identifies when we should switch to the mutation observer
    */
   const querySelectorsFromElement = async (element, switchToMutationObserverAtTime) => {
+    if (shouldBeKilled === true) {
+      return
+    }
+
     extractNewSelectors(element)
     const elmWithClassOrId = element.querySelectorAll('[class],[id]')
 
