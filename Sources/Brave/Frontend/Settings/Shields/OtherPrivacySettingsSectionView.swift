@@ -11,7 +11,6 @@ import Data
 
 struct OtherPrivacySettingsSectionView: View {
   @State private var showPrivateBrowsingConfirmation = false
-  @State private var showPersistentPrivateBrowsingAlert = false
   @ObservedObject var settings: AdvancedShieldsSettings
   
   @Environment(\.openURL) private var openSettingsURL
@@ -59,12 +58,7 @@ struct OtherPrivacySettingsSectionView: View {
         OptionToggleView(title: Strings.persistentPrivateBrowsing,
                          subtitle: nil,
                          option: Preferences.Privacy.persistentPrivateBrowsing) { newValue in
-          if newValue {
-            showPersistentPrivateBrowsingAlert = Preferences.Privacy.shouldShowPersistentPrivateBrowsingAlert.value
-            Preferences.Privacy.shouldShowPersistentPrivateBrowsingAlert.value = false
-          }
-          
-          if !showPersistentPrivateBrowsingAlert {
+          if !Preferences.Privacy.shouldShowPersistentPrivateBrowsingAlert.value {
             Task { @MainActor in
               if newValue {
                 settings.tabManager.saveAllTabs()
@@ -79,20 +73,6 @@ struct OtherPrivacySettingsSectionView: View {
             }
           }
         }
-         .alert(isPresented: $showPersistentPrivateBrowsingAlert, content: {
-           Alert(
-            title: Text(Strings.persistentPrivateBrowsingAlertTitle),
-            message: Text(Strings.persistentPrivateBrowsingAlertMessage),
-            primaryButton: .default(Text(Strings.OKString), action: {
-              Task { @MainActor in
-                settings.tabManager.saveAllTabs()
-              }
-            }),
-            secondaryButton: .cancel(Text(Strings.cancelButtonTitle), action: {
-              
-            })
-           )
-         })
       }
       
       ShieldToggleView(
