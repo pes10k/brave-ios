@@ -276,9 +276,9 @@ window.__firefox__.execute(function($) {
         currentMutationScore = 0
       }
       currentMutationScore += mutationScore
-      if (currentMutationScore > args.switchToSelectorsPollingThreshold) {
-        usePolling(observer)
-      }
+//      if (currentMutationScore > args.switchToSelectorsPollingThreshold) {
+//        usePolling(observer)
+//      }
     }
   }
 
@@ -859,11 +859,6 @@ window.__firefox__.execute(function($) {
    * This should only be used if 1st party ads are not hidden
    */
   const startURLMutationObserver = () => {
-    if (selectorsPollingIntervalId) {
-      clearInterval(selectorsPollingIntervalId)
-      selectorsPollingIntervalId = undefined
-    }
-
     const observer = new MutationObserver(onURLMutations)
 
     const observerConfig = {
